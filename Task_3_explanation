@@ -1,0 +1,7 @@
+- Downloaded the data set and opened the file to extract the images.
+- Going through each image and obtaining each path. From the path name, labels can be obtained for the image categories (igneous, metamorphous, sedimentary, granite, basalt etc.) Done with os module.
+- Standardising them with the same size and colour grade (RGB). used Python Imaging Library (PIL)
+- Now we have a list with each image and it's corresponding label in another list. 
+- These sets are used to split the data into traiining and testing set. 80% of the images set for training. 
+- With Tensorflow, using a pre trained model - MobileNetV2. Removing the top layer so that we can use our data. Keeping all other layers frozen. 
+- Have not gone beyond that as I have not been able to resolve some dependancy issues that prevented me from using tensorflow.layers and so on. 
