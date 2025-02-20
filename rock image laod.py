@@ -1,16 +1,11 @@
 import requests
 import zipfile
-import io #converts raw bytes from rock_list[i] into a valid file path, i.e, an image object.
 import os
 from PIL import Image
+#for splitting
 from sklearn.model_selection import train_test_split
-'''#download zip file
-zip_link = "https://www.dropbox.com/scl/fi/8kftgh4w347sokf8ub0tg/dataset_.zip?rlkey=ewpgq6qht0azmz053pf2ssbfw&st=pfyeayvf&dl=1"
-
-download = requests.get(zip_link)
-
-with open("rock_files.zip", "wb") as f:
-    f.write(download.content)  '''
+#for tensorflow
+import tensorflow as tf
 
 def crop(image):
     breadth, length = image.size
@@ -23,6 +18,7 @@ def crop(image):
     top = (length - new_l)/2
     bottom = (length + new_l)/2
 
+
     return image.crop((left,top,right,bottom))
 
 def standardise(image):
@@ -31,27 +27,58 @@ def standardise(image):
     return rgb_img
 
 #extract images
+split_images = []
+split_labels = []
 path = "/Users/j.harini/Downloads/dataset_.zip"
 with zipfile.ZipFile(path, "r") as rock_files:
     rock_files.extractall("extracted_images")
-    rock_list = rock_files.namelist() #gives us all file names: used for img_path
-    '''f = rock_files.read(rock_list[0])
-    print(f[:10])'''
+    
 #standardise/process images
-    for i in range(5):
-        f = io.BytesIO(rock_files.read(rock_list[i])) #image object instead of raw bytes
-        img_path = os.path.join("extracted_images", rock_list[i]) #extract path is where files will be saved
-        img = Image.open(f)
-        img.load()
-        img = crop(img)
-        img = img.resize((200,200))
-        img = standardise(img)
-        img.show()
+    for (root,_,files) in os.walk("extracted_images"):
+        for f in files:
+            img_path = os.path.join(root, f)
+           
+            if not f.lower().endswith((".png", ".jpg", ".jpeg")):
+                print(f"Skipping non-image file: {f}") 
+                continue
+            
+            try:
+                img = Image.open(img_path)
+                img.load()
+                img = crop(img)
+                img = img.resize((200,200))
+                img = standardise(img)
+            except Exception as e:
+                print(f"Skipping corrupted image: {img_path} due to error: {e}")
+                continue
+
+            path = img_path.split(os.path.sep)
+            rock_type = path[-3]
+            rock_name = path[-2]
+            label = f"{rock_type}_{rock_name}"
+            split_images.append(img_path)
+            split_labels.append(label)
+
+print("Total images collected:", len(split_images)) #debug
+print("Sample image paths:", split_images[:5]) #debug
+
+print(f"Total images found: {len(split_images)}") #debug
+print("Labels: ", set(split_labels)) #debug
 
 #Splitting into training and testing sets
-        
-        
-        
+if len(split_images) > 0:
+    train_images, test_images, train_labels, test_labels = train_test_split(split_images, split_labels, test_size = 0.2, random_state = 42) #making sure the same set of images split everytime with random state = 42.
+else:
+    print("No images to split.") #must check dataset if this occurs.
+
+
+#Pre-Trained Model with Tensorflow
+img_size = (200, 200) #same size as the images we have 
+batch_size = 32
+classes = len(set(split_labels))
+
+base = MobileNetV2(input_shape = (200,200,3), include_top = False) #no top layer.
+base.trainable = False #all other layers frozen
 
 
 
